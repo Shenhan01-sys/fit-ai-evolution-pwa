@@ -1,0 +1,81 @@
+Untuk pengembangan Progressive Web App (PWA), tantangan utamanya adalah performa di sisi klien (client-side inference) yang terbatas oleh spesifikasi perangkat pengguna dan kemampuan browser.
+
+Jika MediaPipe dirasa belum maksimal (terutama karena masalah oklusi alat gym), model yang paling sesuai untuk PWA di tahun 2026 adalah YOLO11 Pose (atau versi YOLOv8 Pose) yang dijalankan menggunakan ONNX Runtime Web dengan akselerasi WebGPU.
+
+Berikut adalah alasan mengapa kombinasi ini lebih unggul untuk PWA dibandingkan MediaPipe:
+
+1. Model Terbaik: YOLO11-Nano (Exported to ONNX)
+
+YOLO (You Only Look Once) versi terbaru memiliki varian "Nano" yang sangat ringan namun jauh lebih robust terhadap oklusi dibandingkan MediaPipe BlazePose.
+
+Ketahanan Oklusi: YOLO mendeteksi seluruh tubuh sebagai satu kesatuan objek sebelum mencari titik sendi. Jika tangan Anda tertutup barbel saat bench press, YOLO tetap bisa memprediksi posisi sendi berdasarkan postur tubuh secara keseluruhan.
+
+Ukuran File: Model YOLO11-N yang sudah dikuantisasi (quantized) hanya berukuran sekitar 5–10 MB, sangat ideal untuk PWA agar tidak membebani kuota dan penyimpanan pengguna.
+
+2. Runtime: ONNX Runtime Web + WebGPU
+
+Untuk menjalankan model ML di browser dengan kecepatan real-time, jangan hanya mengandalkan CPU (WASM).
+
+WebGPU: Di tahun 2026, WebGPU sudah menjadi standar stabil di browser modern (Chrome, Edge, Brave). Ini memungkinkan PWA Anda mengakses kekuatan GPU perangkat secara langsung.
+
+Keuntungan: Dengan WebGPU, Anda bisa mendapatkan frame rate tinggi (30+ FPS) bahkan pada smartphone kelas menengah, yang sangat krusial untuk menghitung repetisi latihan gym yang cepat.
+
+Strategi Implementasi untuk Latihan Berbasis Alat
+
+Karena Anda berfokus pada latihan dengan alat (seperti leg extension atau bench press), berikut adalah strategi teknis tambahannya:
+
+KomponenPilihan RekomendasiAlasanModelyolo11n-pose.onnxKeseimbangan terbaik antara akurasi oklusi dan kecepatan.QuantizationINT8 atau FP16Mengurangi ukuran model hingga 4x tanpa kehilangan akurasi signifikan.Library UIReact / Vue + TailwindMemastikan PWA responsif dan terasa seperti aplikasi native.LogicTemporal SmoothingMenggunakan Moving Average pada koordinat sendi untuk menghilangkan efek "getar" (jitter) saat sendi tertutup alat.
+
+Mengapa MediaPipe Terasa Kurang?
+
+MediaPipe sering kali kehilangan tracking jika salah satu bagian tubuh tidak terlihat (misal: kaki tertutup mesin leg extension). MediaPipe dirancang untuk gerakan yang lebih bebas (bodyweight), sedangkan model berbasis YOLO atau RTMPose dilatih dengan dataset yang lebih kompleks yang mencakup skenario di mana manusia berinteraksi dengan benda.
+
+Tips Tambahan: Jika Anda ingin meningkatkan akurasi bench press, jangan hanya mendeteksi pose manusia. Gunakan model YOLO yang sama untuk mendeteksi objek barbel. Dengan mengetahui posisi barbel terhadap posisi dada, logika aplikasi Anda akan jauh lebih akurat dalam menghitung repetisi daripada hanya mengandalkan posisi siku.
+
+Benar sekali, secara historis YOLO sangat identik dengan Python dan framework PyTorch. Namun, ada perbedaan besar antara melatih model (training) dan menjalankan model (inference).
+
+Di tahun 2026 ini, ekosistem untuk menjalankan model AI di browser sudah sangat matang. Berikut adalah cara kerjanya sehingga YOLO bisa berjalan mulus di JavaScript/PWA:
+
+Bagaimana Model Python Menjadi JavaScript?
+
+Prosesnya disebut dengan Exporting/Conversion. Anda tetap menggunakan Python untuk melatih atau mengunduh model aslinya, lalu mengubah formatnya agar bisa dibaca oleh Browser.
+
+Training (Python): Anda menggunakan library ultralytics di Python untuk mendapatkan model .pt (PyTorch).
+
+Export (Python): Anda menjalankan satu baris perintah untuk mengubahnya menjadi format ONNX atau TensorFlow.js.
+
+Python
+
+
+
+from ultralytics import YOLO
+
+model = YOLO("yolo11n-pose.pt")
+
+model.export(format="onnx") # Format standar industri untuk JS
+
+Inference (JavaScript): File .onnx tersebut kemudian dimuat di PWA Anda menggunakan library ONNX Runtime Web.
+
+Mengapa Menggunakan JS di Browser Lebih Menguntungkan?
+
+Mungkin Anda bertanya, "Kenapa tidak pakai Python di server saja?". Untuk aplikasi gym, menjalankan model langsung di perangkat user (JS) jauh lebih baik karena:
+
+Low Latency (Real-time): Tidak ada jeda waktu kirim gambar ke server. Gerakan repetisi gym yang cepat butuh respon instan.
+
+Privacy: Video user tidak pernah keluar dari HP mereka. Ini poin penting untuk aplikasi kesehatan/fitness.
+
+Cost: Anda tidak perlu menyewa server GPU mahal karena yang bekerja adalah GPU milik user sendiri.
+
+Tools yang Digunakan di Sisi JavaScript
+
+Untuk menjalankan YOLO di PWA, Anda akan bersentuhan dengan teknologi berikut:
+
+ONNX Runtime Web: Ini adalah "mesin" paling kencang saat ini untuk menjalankan model AI di browser.
+
+WebGPU: API browser terbaru yang memungkinkan JavaScript mengakses kartu grafis (GPU) dengan kecepatan yang hampir menyamai aplikasi native (seperti C++ atau Python).
+
+Web Workers: Digunakan agar proses deteksi AI tidak membuat tampilan UI aplikasi Anda menjadi lag atau membeku.
+
+Perbandingan Sederhana
+
+FiturPython (Server/Desktop)JavaScript (PWA/Browser)KegunaanMelatih model dari nol (Training)Menjalankan model (Inference)Akses HardwareLangsung ke CUDA (NVIDIA)Lewat WebGPU/WebGLKoneksiButuh internet untuk kirim dataBisa 100% OfflineKecepatanSangat CepatCepat (tergantung spek HP user)Jadi intinya: Anda tetap butuh sedikit Python di awal hanya untuk menyiapkan file modelnya. Setelah file siap, 100% logika aplikasi dan deteksi posenya akan berjalan di dalam JavaScript.

@@ -1,0 +1,659 @@
+📘 Blueprint Teknis: FitAI Evolution PWA
+Visi Proyek: Mengubah aplikasi fitness standar menjadi "Base Mini-App" berbasis PWA yang menggabungkan validasi AI (Proof-of-Workout) dengan insentif kepemilikan aset digital (NFT) di jaringan Base.
+
+I. Arsitektur Sistem (High-Level)
+Kita menggunakan arsitektur Hybrid Web3:
+
+Frontend (The Face): Next.js (App Router) sebagai PWA.
+
+Intelligence Layer (The Brain):
+
+Text/Coach: Groq API (Llama3-70b) untuk respons instan.
+
+Vision: TensorFlow.js (Teachable Machine) berjalan di browser (client-side) untuk privasi dan kecepatan real-time.
+
+On-chain Layer (The Soul):
+
+Identity: Privy (Social Login + Wallet Creation).
+
+Settlement: Base Sepolia (Testnet) untuk Smart Contract Achievements.
+
+Backend (The Bridge): Node.js/Next API Routes untuk orkestrasi data dan minting NFT (Gasless transaction).
+
+II. Struktur & Konfigurasi Frontend (PWA)
+Berdasarkan file fit-ai-evolution-pwa-main yang Anda upload, kita menggunakan Next.js.
+
+1. Konfigurasi PWA (manifest.json)
+File ini wajib ada agar aplikasi bisa diinstal di HP ("Add to Home Screen").
+
+Lokasi: public/manifest.json
+
+Pengaturan Kunci:
+
+JSON
+
+{
+  "name": "FitAI Evolution",
+  "short_name": "FitAI",
+  "start_url": "/",
+  "display": "standalone", // Menghilangkan URL bar browser
+  "background_color": "#0F172A", // Deep Slate (Sesuai tema)
+  "theme_color": "#0052FF", // Base Blue
+  "icons": [ ... ] // Wajib ada icon 192x192 dan 512x512
+}
+Service Worker: Pastikan public/service-worker.js aktif untuk caching aset agar aplikasi terasa cepat seperti native app.
+
+2. UI/UX Design System
+Mengambil inspirasi dari portofolio Anda (hans_porto_web):
+
+Color Palette:
+
+Background: bg-slate-950 (Deep Space).
+
+Primary: text-blue-600 (Base Blue).
+
+Success: text-green-500 (Untuk validasi pose benar).
+
+Animations: Gunakan Framer Motion untuk transisi halaman yang halus (Slide-in/Fade-in) agar terasa seperti aplikasi mobile native, bukan web biasa.
+
+III. Implementasi Fitur Utama (Step-by-Step)
+1. Onboarding & Wallet (Privy Integration)
+Menggantikan sistem login lama demo-user.
+
+Library: @privy-io/react-auth.
+
+Logic:
+
+User klik "Login with Google".
+
+Privy membuatkan Embedded Wallet di background.
+
+Ambil wallet.address dari hook usePrivy().
+
+Simpan address ini ke database PostgreSQL Anda sebagai identitas unik user.
+
+File Target: app/auth/login/page.tsx dan components/onboarding-wizard.tsx.
+
+2. AI Coach (Integrasi Groq)
+Menggunakan implementasi dari repo portofolio Anda.
+
+File Source: server/groq-service.ts (dari repo hans_porto_web).
+
+Adaptasi: Pindahkan logika ini ke app/api/chat/message/route.ts di proyek baru.
+
+System Prompt:
+
+"You are FitAI, an energetic virtual coach. The user has [Medical History]. Adjust your advice to be safe for them. Verify their workout data from the blockchain if asked."
+
+3. Proof-of-Workout (Camera & Pose Detection)
+Ini adalah fitur "Technical Execution" terkuat untuk Hackathon.
+
+Komponen: components/pose-detector.tsx.
+
+Teknis:
+
+Gunakan @tensorflow-models/pose-detection (MoveNet) atau Teachable Machine export.
+
+Algoritma Repetisi (Squat):
+
+State A (Berdiri): Hip Y < Knee Y.
+
+State B (Jongkok): Hip Y > Knee Y (Threshold validasi).
+
+Valid Rep = Transisi A -> B -> A.
+
+Security: Setelah repetisi valid, kirim data terenkripsi ke API /api/form-validation/verify-pose.
+
+4. On-chain Achievements (NFT System)
+Sistem reward di jaringan Base.
+
+Smart Contract: ERC-1155 (Hemat gas untuk banyak tipe item).
+
+Konfigurasi: Lihat file lib/web3/nft-config.ts.
+
+Token ID 1: "First Step"
+
+Token ID 2: "Week Warrior"
+
+Token ID 3: "Perfect Form"
+
+Minting Flow:
+
+User tidak perlu bayar gas (Gasless/Sponsored).
+
+Backend (menggunakan Private Key developer) memanggil fungsi mintTo(userAddress, tokenId) di smart contract setelah API memverifikasi workout sukses.
+
+IV. Struktur Database (PostgreSQL + Drizzle)
+Perluasan skema database untuk mendukung fitur Web3 dan medis.
+
+File Target: scripts/001_create_fitness_tables.sql dan file schema Drizzle.
+
+Tabel Baru/Revisi:
+
+Users: Tambah kolom wallet_address (unique), medical_history (text/jsonb), height, goals.
+
+Workouts: Tambah kolom verification_hash (untuk bukti pose AI), reps_count, accuracy_score.
+
+Achievements: Tambah kolom transaction_hash (bukti NFT di blockchain), token_id.
+
+V. Checklist Persiapan Hackathon (Base Indonesia 2025)
+Untuk memastikan kemenangan di kategori Base Track:
+
+Deploy Smart Contract:
+
+Deploy kontrak ERC-1155 ke Base Sepolia.
+
+Verifikasi kontrak di Blockscout/Basescan.
+
+Masukkan alamat kontrak ke .env (NEXT_PUBLIC_NFT_CONTRACT_ADDRESS).
+
+Selesaikan "Mock" Data:
+
+Karena waktu singkat, pastikan Anda punya "Demo Mode" di mana juri bisa melihat pose detection bekerja tanpa harus olahraga keringat sungguhan (misal: deteksi gerakan tangan sederhana sebagai pengganti squat).
+
+Mobile Experience:
+
+Tes di HP asli. Pastikan tombol tidak terlalu kecil dan navigasi ada di bawah (Bottom Navigation).
+
+Video Demo:
+
+Rekam layar yang menunjukkan flow: Login (Privy) -> Chat AI (Groq) -> Latihan (Kamera) -> Notifikasi "NFT Minted".
+
+VI. Langkah Eksekusi Segera
+Berikut adalah urutan kerja yang saya sarankan mulai sekarang:
+
+Setup Environment: Isi .env.local dengan API Key Groq, Privy App ID, dan RPC URL Base Sepolia.
+
+Database Migration: Jalankan script SQL di folder scripts/ ke database Neon/PostgreSQL Anda.
+
+Frontend Core: Fokus selesaikan CameraWorkout (pose-detector.tsx) agar bisa mendeteksi 1 jenis gerakan dulu.
+
+Web3 Connecting: Pasang logic di backend agar saat latihan selesai, log tercatat di DB (simulasi minting dulu, baru sambungkan ke blockchain di akhir).
+
+implementasi kode spesifik untuk Logic Penghitung Repetisi Squat yang bisa Anda masukkan langsung ke dalam file components/pose-detector.tsx.
+
+Kode ini menggantikan bagian "Mock Data" dengan logika deteksi pose asli menggunakan model MoveNet yang sudah Anda load.
+
+Perubahan Utama:
+State Management: Menggunakan useRef untuk melacak status "Jongkok" (Down) vs "Berdiri" (Up) agar tidak spamming count.
+
+Logika Geometri: Membandingkan posisi Y (vertikal) antara Pinggul (Hip) dan Lutut (Knee).
+
+Dalam koordinat komputer (Canvas), Y 0 ada di atas. Semakin ke bawah, Y semakin besar.
+
+Berdiri: Y Pinggul < Y Lutut (Pinggul di atas lutut).
+
+Jongkok: Y Pinggul >= Y Lutut (Pinggul sejajar atau di bawah lutut).
+
+Kode Implementasi (components/pose-detector.tsx)
+Anda bisa mengganti seluruh isi fungsi detectPose dan menambahkan logic ref di dalam komponen Anda seperti ini:
+
+TypeScript
+
+// ... import dan interface yang sudah ada
+
+export function PoseDetector({
+  exerciseName,
+  onFormScore,
+}: {
+  exerciseName: string
+  onFormScore: (score: number, feedback: string[]) => void
+}) {
+  // ... ref dan state yang sudah ada (canvasRef, webcamRef, dll)
+  
+  // TAMBAHAN: Refs untuk logic Squat (gunakan useRef agar nilai persisten antar frame)
+  const squatState = useRef<"UP" | "DOWN">("UP") 
+  const repCount = useRef(0)
+  const detectorRef = useRef<any>(null) // Untuk menyimpan instance detector MoveNet
+
+  // ... useEffect loadModels yang sudah ada
+  // Pastikan inisialisasi detector dilakukan di sini setelah script load
+  useEffect(() => {
+     const loadModels = async () => {
+       // ... script loading logic (seperti kode Anda) ...
+
+       // SETELAH Script Loaded, Inisialisasi Detector MoveNet asli
+       if (window.poseDetection) {
+         const model = poseDetection.SupportedModels.MoveNet;
+         const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
+         detectorRef.current = await poseDetection.createDetector(model, detectorConfig);
+         setIsLoading(false);
+       }
+     }
+     loadModels()
+  }, [])
+
+
+  // LOGIC INTI: Fungsi Menghitung Squat
+  const processSquatLogic = (keypoints: any[]) => {
+    // Ambil point penting (sesuai standar MoveNet Keypoints)
+    // 11: left_hip, 12: right_hip, 13: left_knee, 14: right_knee
+    const leftHip = keypoints.find(p => p.name === 'left_hip' || p.name === 'left_hip_joint');
+    const rightHip = keypoints.find(p => p.name === 'right_hip' || p.name === 'right_hip_joint');
+    const leftKnee = keypoints.find(p => p.name === 'left_knee' || p.name === 'left_knee_joint');
+    const rightKnee = keypoints.find(p => p.name === 'right_knee' || p.name === 'right_knee_joint');
+
+    // Validasi: Pastikan confidence score cukup tinggi (> 0.3) agar tidak deteksi hantu
+    if (!leftHip || !rightHip || !leftKnee || !rightKnee ||
+        leftHip.score < 0.3 || rightHip.score < 0.3 || leftKnee.score < 0.3) {
+      return { feedback: ["Badan tidak terlihat jelas"], isPerfectForm: false };
+    }
+
+    // Hitung rata-rata posisi Y (Vertikal)
+    const avgHipY = (leftHip.y + rightHip.y) / 2;
+    const avgKneeY = (leftKnee.y + rightKnee.y) / 2;
+
+    let feedback = [];
+    let isPerfectForm = false;
+
+    // LOGIKA TRANSISI STATE
+    // Threshold 0.1 digunakan sebagai toleransi agar tidak terlalu sensitif
+    
+    // 1. Deteksi Fase TURUN (Squat Down)
+    // Jika Pinggul sejajar atau lebih rendah dari Lutut (Y Hip >= Y Knee)
+    if (avgHipY >= avgKneeY - 0.05) { 
+      if (squatState.current === "UP") {
+        squatState.current = "DOWN"; // Ubah state jadi di bawah
+        feedback.push("Good depth! Now stand up.");
+      }
+      isPerfectForm = true; // Form bagus saat di bawah
+    } 
+    
+    // 2. Deteksi Fase NAIK (Stand Up) & Hitung Repetisi
+    // Jika Pinggul kembali jauh di atas Lutut
+    else if (avgHipY < avgKneeY - 0.2) { 
+      if (squatState.current === "DOWN") {
+        squatState.current = "UP"; // Reset state
+        repCount.current += 1; // TAMBAH REP!
+        
+        // PENTING: Panggil callback ke parent component untuk update UI/NFT Minting
+        onFormScore(100, ["Repetisi Selesai!"]); 
+      }
+      feedback.push("Go lower for next rep");
+    }
+
+    return { feedback, isPerfectForm, currentReps: repCount.current };
+  };
+
+  const detectPose = async (video: HTMLVideoElement) => {
+    const canvas = canvasRef.current
+    if (!canvas || !detectorRef.current) return // Pastikan detector siap
+
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    const drawFrame = async () => {
+      // 1. Deteksi Pose Asli menggunakan MoveNet
+      const poses = await detectorRef.current.estimatePoses(video);
+      
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      if (poses && poses.length > 0) {
+        const keypoints = poses[0].keypoints;
+        
+        // 2. Jalankan Logic Squat
+        const logicResult = processSquatLogic(keypoints);
+        
+        // 3. Update State UI (Gabungkan hasil logic dengan data pose)
+        const displayResult: PoseDetectionResult = {
+          formScore: logicResult.isPerfectForm ? 0.95 : 0.5,
+          feedback: [`Reps: ${logicResult.currentReps}`, ...logicResult.feedback],
+          keyPoints: keypoints.map((p: any) => ({
+             name: p.name,
+             position: { x: p.x / video.videoWidth, y: p.y / video.videoHeight }, // Normalisasi ke 0-1
+             confidence: p.score
+          }))
+        };
+
+        setPoseData(displayResult);
+        
+        // Gambar skeleton (gunakan fungsi helper Anda yang sudah ada)
+        drawSkeleton(ctx, displayResult.keyPoints, canvas.width, canvas.height);
+      }
+
+      if (isActive) {
+        requestAnimationFrame(drawFrame);
+      }
+    }
+
+    drawFrame();
+  }
+
+  // ... sisa kode drawSkeleton, startWebcam, dll tetap sama
+}
+Penjelasan Logika untuk Hackathon:
+Anti-Cheat: Repetisi hanya dihitung jika user melakukan siklus penuh: Berdiri -> Jongkok (Pinggul sejajar lutut) -> Berdiri Kembali. Jika user hanya "setengah jongkok", avgHipY tidak akan melewati avgKneeY, sehingga state tidak berubah menjadi "DOWN".
+
+Visual Feedback: Saat user mencapai kedalaman yang benar (posisi jongkok sempurna), isPerfectForm menjadi true, yang bisa Anda gunakan untuk mengubah warna skeleton menjadi Hijau Terang di UI.
+
+Integrasi NFT: Variabel repCount.current inilah yang nanti akan dikirim ke backend. Misalnya: if (repCount.current === 10) { mintNFT() }.
+
+Pastikan Anda menginstal package tfjs jika belum (atau gunakan CDN seperti di kode Anda):
+
+@tensorflow/tfjs-core
+
+@tensorflow/tfjs-converter
+
+@tensorflow/tfjs-backend-webgl
+
+@tensorflow-models/pose-detection
+
+
+Berikut adalah Panduan Teknis Detail: Implementasi Tampilan Achievement (Display Logic).
+
+Fokus panduan ini adalah mengubah tampilan daftar statis menjadi "Smart Interactive Gallery" yang menghubungkan status Web2 (Database) dengan Web3 (Base Blockchain). Tujuannya adalah agar juri Hackathon bisa melihat dengan jelas mana achievement yang sudah dicapai dan mana yang sudah benar-benar menjadi aset on-chain (NFT).
+
+1. Konsep Display Logic: "The Three States"
+Agar tampilan informatif dan interaktif, setiap kartu achievement harus menangani 3 Status Kondisi:
+
+🔒 Locked: User belum memenuhi syarat latihan. (Visual: Grayscale, Opacity rendah, Icon Gembok).
+
+🔓 Unlocked (Ready to Mint): User sudah menyelesaikan latihan (tercatat di DB), tapi belum mengklaim NFT-nya. (Visual: Pulsing Border, Tombol "Claim NFT").
+
+💎 Minted (On-chain Asset): NFT sudah ada di wallet user. (Visual: Glowing Gold/Blue Border, Link ke Blockscout/BaseScan, Efek 3D/Tilt).
+
+2. Komponen: SmartAchievementCard.tsx
+Kita akan memecah logika kartu menjadi komponen terpisah agar lebih rapi dan bisa menangani logika minting di dalamnya.
+
+Buat file baru: components/smart-achievement-card.tsx
+
+TypeScript
+
+"use client"
+
+import { useState } from "react"
+import { motion } from "framer-motion" // Untuk animasi halus
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Lock, ExternalLink, Trophy, Loader2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+
+// Interface disesuaikan dengan schema database & kebutuhan UI
+interface AchievementData {
+  id: string
+  title: string
+  description: string
+  icon_emoji: string
+  is_unlocked: boolean // Dari database (progress latihan)
+  is_minted: boolean   // Dari database (apakah tx_hash sudah ada?)
+  mint_tx_hash?: string | null
+  unlocked_at?: string
+}
+
+interface SmartAchievementCardProps {
+  achievement: AchievementData
+  walletAddress: string | null
+  onMintSuccess: (id: string, txHash: string) => void
+}
+
+export function SmartAchievementCard({ 
+  achievement, 
+  walletAddress, 
+  onMintSuccess 
+}: SmartAchievementCardProps) {
+  const [isMinting, setIsMinting] = useState(false)
+  const { toast } = useToast()
+
+  // Handler untuk Minting (Integrasi Logic NFTMintButton di sini)
+  const handleMint = async () => {
+    if (!walletAddress) {
+      toast({ title: "Wallet not connected", variant: "destructive" })
+      return
+    }
+    
+    setIsMinting(true)
+    try {
+      const response = await fetch("/api/nft/mint-achievement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          achievementId: achievement.id, // Kirim ID achievement
+          walletAddress,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Minting failed")
+
+      toast({
+        title: "Achievement Minted on Base!",
+        description: "Your proof-of-workout is now on-chain.",
+        className: "bg-green-500 text-white border-none"
+      })
+
+      // Callback untuk update state di parent tanpa refresh page
+      onMintSuccess(achievement.id, data.txHash)
+
+    } catch (error) {
+      toast({ 
+        title: "Minting Failed", 
+        description: error instanceof Error ? error.message : "Try again later", 
+        variant: "destructive" 
+      })
+    } finally {
+      setIsMinting(false)
+    }
+  }
+
+  // --- LOGIC VISUAL ---
+  
+  // 1. LOCKED STATE
+  if (!achievement.is_unlocked) {
+    return (
+      <Card className="bg-slate-900/50 border-slate-800 opacity-60 relative overflow-hidden">
+        <CardContent className="p-6 flex flex-col items-center text-center grayscale">
+          <div className="text-4xl mb-4 opacity-50">{achievement.icon_emoji}</div>
+          <h3 className="font-bold text-slate-400">{achievement.title}</h3>
+          <p className="text-xs text-slate-500 mt-2">{achievement.description}</p>
+          <div className="mt-4 flex items-center gap-2 text-xs text-slate-500 font-mono">
+            <Lock className="w-3 h-3" /> LOCKED
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // 2. MINTED STATE (ON-CHAIN)
+  if (achievement.is_minted) {
+    return (
+      <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300 }}>
+        <Card className="bg-gradient-to-br from-slate-900 to-blue-900/40 border-blue-500/50 relative overflow-hidden shadow-[0_0_15px_rgba(0,82,255,0.3)]">
+          {/* Efek Shine */}
+          <div className="absolute top-0 right-0 p-2">
+             <Badge className="bg-blue-600/20 text-blue-400 border-blue-500/50 hover:bg-blue-600/30">
+               NFT OWNED
+             </Badge>
+          </div>
+          
+          <CardContent className="p-6 flex flex-col items-center text-center">
+            <div className="text-5xl mb-4 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
+              {achievement.icon_emoji}
+            </div>
+            <h3 className="font-bold text-white mb-1">{achievement.title}</h3>
+            <p className="text-xs text-blue-200/70">{achievement.description}</p>
+            
+            <div className="mt-4 w-full">
+              <Button variant="outline" size="sm" className="w-full text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10" asChild>
+                <a 
+                  href={`https://sepolia.basescan.org/tx/${achievement.mint_tx_hash}`} 
+                  target="_blank" 
+                  rel="noreferrer"
+                >
+                  View on BaseScan <ExternalLink className="w-3 h-3 ml-2" />
+                </a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    )
+  }
+
+  // 3. UNLOCKED BUT NOT MINTED (READY TO CLAIM)
+  return (
+    <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 4 }}>
+      <Card className="bg-slate-900 border-[#80EE98] relative overflow-hidden ring-1 ring-[#80EE98]/50">
+        <CardContent className="p-6 flex flex-col items-center text-center">
+          <div className="text-5xl mb-4">{achievement.icon_emoji}</div>
+          <h3 className="font-bold text-[#80EE98]">{achievement.title}</h3>
+          <p className="text-xs text-slate-400 mb-4">{achievement.description}</p>
+          
+          <CardFooter className="p-0 w-full">
+            <Button 
+              onClick={handleMint} 
+              disabled={isMinting}
+              className="w-full bg-[#46DFB1] text-slate-900 hover:bg-[#80EE98] font-bold shadow-[0_0_10px_rgba(70,223,177,0.4)]"
+            >
+              {isMinting ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Minting...</>
+              ) : (
+                <><Trophy className="w-4 h-4 mr-2" /> Claim NFT</>
+              )}
+            </Button>
+          </CardFooter>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+}
+3. Update Gallery: AchievementGallery.tsx
+Sekarang kita update gallery utama untuk menggunakan smart card di atas dan mengelola data state-nya.
+
+Update file: components/achievement-gallery.tsx
+
+TypeScript
+
+"use client"
+
+import { useEffect, useState } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
+import { SmartAchievementCard } from "@/components/smart-achievement-card" // Import komponen baru
+import { usePrivy } from "@privy-io/react-auth" // Asumsi pakai Privy
+
+interface Achievement {
+  id: string
+  achievement_type: string
+  title: string
+  description: string
+  unlocked_at: string | null
+  icon_emoji: string
+  // Tambahan field untuk logic NFT
+  transaction_hash: string | null 
+}
+
+export function AchievementGallery() {
+  const [achievements, setAchievements] = useState<Achievement[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { user } = usePrivy() // Ambil user wallet dari Privy
+
+  // Fetch Data
+  useEffect(() => {
+    const fetchAchievements = async () => {
+      try {
+        // API ini harus return data achievements join dengan status user
+        const response = await fetch("/api/achievements/list")
+        if (!response.ok) throw new Error("Failed to fetch")
+        const data = await response.json()
+        setAchievements(data.achievements)
+      } catch (error) {
+        console.error("Error:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (user) { // Hanya fetch jika user login
+        fetchAchievements()
+    }
+  }, [user])
+
+  // Handler update state lokal setelah sukses minting (Optimistic UI)
+  const handleMintUpdate = (id: string, txHash: string) => {
+    setAchievements(prev => prev.map(ach => 
+      ach.id === id 
+        ? { ...ach, transaction_hash: txHash } // Update status jadi minted
+        : ach
+    ))
+  }
+
+  // --- RENDER LOGIC ---
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-64 w-full rounded-xl bg-slate-800" />)}
+      </div>
+    )
+  }
+
+  const walletAddress = user?.wallet?.address || null
+  const mintedCount = achievements.filter(a => a.transaction_hash).length
+  const unlockedCount = achievements.filter(a => a.unlocked_at).length
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/50 p-4 rounded-lg border border-slate-800">
+        <div>
+           <h2 className="text-xl font-bold text-white">Your Trophy Case</h2>
+           <p className="text-xs text-slate-400">Mint unlocked achievements to Base L2</p>
+        </div>
+        <div className="flex gap-3">
+            <div className="text-center">
+                <p className="text-[10px] uppercase text-slate-500 font-bold">Unlocked</p>
+                <Badge variant="outline" className="border-[#80EE98] text-[#80EE98]">{unlockedCount}</Badge>
+            </div>
+            <div className="text-center">
+                <p className="text-[10px] uppercase text-slate-500 font-bold">Minted</p>
+                <Badge className="bg-blue-600">{mintedCount}</Badge>
+            </div>
+        </div>
+      </div>
+
+      {/* Grid Display */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
+        {achievements.map((ach) => (
+          <SmartAchievementCard
+            key={ach.id}
+            walletAddress={walletAddress}
+            onMintSuccess={handleMintUpdate}
+            achievement={{
+              id: ach.id,
+              title: ach.title,
+              description: ach.description,
+              icon_emoji: ach.icon_emoji,
+              is_unlocked: !!ach.unlocked_at,
+              is_minted: !!ach.transaction_hash,
+              mint_tx_hash: ach.transaction_hash,
+              unlocked_at: ach.unlocked_at || undefined
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+4. Poin Penting untuk Hackathon (Technical Polish)
+Untuk memenangkan hati juri, perhatikan detail berikut pada kode di atas:
+
+Framer Motion (motion.div):
+
+Pada status "Unlocked but not Minted", kartu dibuat bergerak halus (animate={{ y: [0, -5, 0] }}). Ini adalah psikologi UX untuk menarik perhatian user agar segera mengklik tombol "Claim NFT".
+
+Optimistic UI Update (handleMintUpdate):
+
+Saat user sukses minting, kita langsung mengubah tampilan kartu menjadi "Minted" (emas/biru) tanpa perlu me-reload halaman atau memanggil API ulang. Ini membuat aplikasi terasa sangat cepat (Instant Gratification).
+
+Visual Hierarchy:
+
+Locked: Gelap, menyatu dengan background.
+
+Unlocked: Hijau terang (Warna sukses FitAI), tombol Action utama.
+
+Minted: Biru/Emas (Warna Base/Premium), tombol sekunder (View on Explorer).
+
+Base Integration:
+
+Link langsung ke sepolia.basescan.org membuktikan bahwa aset tersebut benar-benar ada di blockchain, bukan sekadar database lokal.
