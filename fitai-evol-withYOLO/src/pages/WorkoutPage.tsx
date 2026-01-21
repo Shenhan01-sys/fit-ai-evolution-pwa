@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { PageTransition } from '@/components/PageTransition'
 import { CameraWorkout, ExerciseType } from '@/components/CameraWorkout'
 import { motion } from 'framer-motion'
@@ -16,7 +16,6 @@ export function WorkoutPage() {
     const [selectedExercise, setSelectedExercise] = useState<ExerciseType | null>(
         stateData?.category || null
     )
-    const [exerciseName] = useState<string>(stateData?.exerciseName || 'Exercise')
     const [isWorkoutComplete, setIsWorkoutComplete] = useState(false)
 
     const exercises: { type: ExerciseType; label: string; emoji: string }[] = [

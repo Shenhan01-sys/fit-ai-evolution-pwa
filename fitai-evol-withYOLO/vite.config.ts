@@ -1,12 +1,43 @@
-import { defineConfig } from 'vite'
+import { defineConfig, Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import fs from 'fs'
+
+// Custom plugin to serve ONNX Runtime WASM files properly
+function onnxWasmPlugin(): Plugin {
+    return {
+        name: 'onnx-wasm-plugin',
+        configureServer(server) {
+            server.middlewares.use((req, res, next) => {
+                // Intercept requests for ONNX WASM files
+                if (req.url?.startsWith('/onnx-wasm/')) {
+                    const fileName = req.url.replace('/onnx-wasm/', '').split('?')[0]
+                    const filePath = path.resolve(__dirname, 'node_modules/onnxruntime-web/dist', fileName)
+
+                    if (fs.existsSync(filePath)) {
+                        const ext = path.extname(fileName)
+                        const contentType = ext === '.wasm' ? 'application/wasm' :
+                            ext === '.mjs' ? 'application/javascript' :
+                                'application/octet-stream'
+
+                        res.setHeader('Content-Type', contentType)
+                        res.setHeader('Access-Control-Allow-Origin', '*')
+                        fs.createReadStream(filePath).pipe(res)
+                        return
+                    }
+                }
+                next()
+            })
+        }
+    }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [
         react(),
+        onnxWasmPlugin(),  // Custom plugin to serve ONNX WASM from node_modules
         VitePWA({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
