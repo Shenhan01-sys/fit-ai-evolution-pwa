@@ -68,6 +68,7 @@ export default defineConfig({
                 ]
             },
             workbox: {
+                maximumFileSizeToCacheInBytes: 40000000,
                 runtimeCaching: [
                     {
                         urlPattern: /^https:\/\/api\.*/i,
@@ -97,7 +98,17 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, './src')
+            '@': path.resolve(__dirname, './src'),
+            'framer-motion': path.resolve(__dirname, 'node_modules/framer-motion/dist/framer-motion.js'),
+            '@privy-io/react-auth': path.resolve(__dirname, 'node_modules/@privy-io/react-auth/dist/cjs/index.js'),
+            '@adraffy/ens-normalize': path.resolve(__dirname, 'node_modules/@adraffy/ens-normalize/dist/index.cjs'),
+            'eventemitter3': path.resolve(__dirname, 'node_modules/eventemitter3/index.js'),
+            '@msgpack/msgpack': path.resolve(__dirname, 'node_modules/@msgpack/msgpack/dist.cjs/index.cjs'),
+            'unstorage': path.resolve(__dirname, 'node_modules/unstorage/dist/index.cjs'),
+            'zustand': path.resolve(__dirname, 'node_modules/zustand'),
+            'zod': path.resolve(__dirname, 'node_modules/zod'),
+            'valtio': path.resolve(__dirname, 'node_modules/valtio'),
+            'tslib': path.resolve(__dirname, 'node_modules/tslib/tslib.js')
         }
     },
     server: {
@@ -125,7 +136,7 @@ export default defineConfig({
                 manualChunks: {
                     'vendor-react': ['react', 'react-dom', 'react-router-dom'],
                     'vendor-web3': ['viem', 'wagmi', '@coinbase/onchainkit'],
-                    'vendor-ai': ['groq-sdk', '@teachablemachine/pose', '@tensorflow/tfjs']
+                    'vendor-ai': ['groq-sdk', '@tensorflow/tfjs']
                 }
             }
         }
