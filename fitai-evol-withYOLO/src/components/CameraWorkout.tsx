@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { yoloDetector } from '@/lib/yoloPoseDetection'
 import { KeypointSmoother } from '@/lib/keypointSmoother'
 import { VirtualCoach, CoachState } from './VirtualCoach'
 import { motion } from 'framer-motion'
-import { Camera, CameraOff } from 'lucide-react'
+import { Camera, CameraOff, AlertTriangle } from 'lucide-react'
+
+// Type for the dynamically imported YOLO detector
+type YOLODetectorType = Awaited<typeof import('@/lib/yoloPoseDetection')>['yoloDetector']
 
 export type ExerciseType = 'squats' | 'pushups' | 'planks' | 'generic'
 
@@ -27,8 +29,10 @@ export function CameraWorkout({ exerciseType, onWorkoutComplete }: CameraWorkout
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const animationFrameRef = useRef<number | null>(null)
     const smootherRef = useRef(new KeypointSmoother(5)) // 5-frame smoothing window
+    const yoloDetectorRef = useRef<YOLODetectorType | null>(null) // Dynamic YOLO detector
 
     const [isModelLoading, setIsModelLoading] = useState(true)
+    const [loadError, setLoadError] = useState<string | null>(null)
     const [hasPermission, setHasPermission] = useState(false)
     const [repCount, setRepCount] = useState(0)
     const [coachState, setCoachState] = useState<CoachState>('idle')
@@ -40,16 +44,26 @@ export function CameraWorkout({ exerciseType, onWorkoutComplete }: CameraWorkout
     const [currentFPS, setCurrentFPS] = useState(0)
     const [inferenceTime, setInferenceTime] = useState(0)
 
-    // Initialize YOLO11 Pose
+    // Dynamic import and initialize YOLO11 Pose
     useEffect(() => {
         const initializeYOLO = async () => {
             try {
                 setIsModelLoading(true)
-                await yoloDetector.initialize()
+                setLoadError(null)
+                
+                // Dynamic import - this prevents the module from being loaded at build time
+                console.log('🔄 Loading YOLO module dynamically...')
+                const yoloModule = await import('@/lib/yoloPoseDetection')
+                yoloDetectorRef.current = yoloModule.yoloDetector
+                
+                console.log('🚀 Initializing YOLO11-Nano...')
+                await yoloDetectorRef.current.initialize()
+                
                 setIsModelLoading(false)
                 console.log('✅ YOLO11-Nano loaded successfully')
             } catch (error) {
                 console.error('❌ Failed to load YOLO11:', error)
+                setLoadError(error instanceof Error ? error.message : 'Failed to load AI model')
                 setIsModelLoading(false)
             }
         }
@@ -59,11 +73,12 @@ export function CameraWorkout({ exerciseType, onWorkoutComplete }: CameraWorkout
 
     // YOLO Pose detection loop
     const detectPoseWithYOLO = useCallback(async () => {
-        if (!videoRef.current || !canvasRef.current || !yoloDetector.isReady()) return
+        const detector = yoloDetectorRef.current
+        if (!videoRef.current || !canvasRef.current || !detector?.isReady()) return
 
         try {
             // Run YOLO detection
-            const result = await yoloDetector.detectPose(videoRef.current)
+            const result = await detector.detectPose(videoRef.current)
 
             // Get canvas context
             const canvas = canvasRef.current
@@ -86,8 +101,8 @@ export function CameraWorkout({ exerciseType, onWorkoutComplete }: CameraWorkout
                 const smoothedKeypoints = smootherRef.current.smooth(result.keypoints)
 
                 // Update performance stats
-                setCurrentFPS(yoloDetector.getFPS())
-                setInferenceTime(yoloDetector.getInferenceTime())
+                setCurrentFPS(detector.getFPS())
+                setInferenceTime(detector.getInferenceTime())
 
                 // Update confidence
                 setPoseConfidence(result.confidence)
@@ -213,7 +228,8 @@ export function CameraWorkout({ exerciseType, onWorkoutComplete }: CameraWorkout
 
     // Initialize camera when model is ready
     useEffect(() => {
-        if (!isModelLoading && yoloDetector.isReady()) {
+        const detector = yoloDetectorRef.current
+        if (!isModelLoading && detector?.isReady()) {
             startCamera()
         }
 
@@ -275,8 +291,26 @@ export function CameraWorkout({ exerciseType, onWorkoutComplete }: CameraWorkout
                     </div>
                 )}
 
+                {/* Error State */}
+                {loadError && !isModelLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/80 rounded-lg">
+                        <div className="text-center p-6">
+                            <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                            <h3 className="text-xl font-bold text-white mb-2">AI Model Failed to Load</h3>
+                            <p className="text-gray-300 mb-2">Error: {loadError}</p>
+                            <p className="text-gray-400 text-sm mb-4">Try refreshing the page or check console for details</p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="px-6 py-3 bg-base-blue hover:bg-base-blue/80 text-white rounded-lg transition-colors"
+                            >
+                                Reload Page
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Permission Request */}
-                {!hasPermission && !isModelLoading && (
+                {!hasPermission && !isModelLoading && !loadError && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/80 rounded-lg">
                         <div className="text-center p-6">
                             <CameraOff className="w-16 h-16 text-gray-400 mx-auto mb-4" />

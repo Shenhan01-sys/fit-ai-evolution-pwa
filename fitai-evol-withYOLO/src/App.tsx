@@ -1,13 +1,40 @@
+import React, { Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { usePrivy } from '@privy-io/react-auth'
 import { BottomNav } from './components/BottomNav'
 import { InstallPrompt } from './components/InstallPrompt'
 import { LandingPage } from './pages/LandingPage'
 import { HomePage } from './pages/HomePage'
-import { WorkoutPage } from './pages/WorkoutPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { PlanPage } from './pages/PlanPage'
 import { AchievementsPage } from './pages/AchievementsPage'
+
+// TEMPORARILY DISABLED - Lazy load WorkoutPage to avoid loading YOLO/ONNX until needed
+// const WorkoutPage = React.lazy(() => import('./pages/WorkoutPage').then(m => ({ default: m.WorkoutPage })))
+
+// Temporary placeholder WorkoutPage
+function WorkoutPage() {
+    return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+            <div className="text-center">
+                <h1 className="text-2xl font-bold mb-4">🏋️ Workout Page</h1>
+                <p className="text-gray-400">YOLO ML temporarily disabled for testing</p>
+            </div>
+        </div>
+    )
+}
+
+// Loading spinner for lazy components
+function LazyLoadSpinner() {
+    return (
+        <div className="min-h-screen bg-slate-deep flex items-center justify-center">
+            <div className="text-center">
+                <div className="w-12 h-12 border-4 border-base-blue border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-gray-400">Loading workout module...</p>
+            </div>
+        </div>
+    )
+}
 
 // Placeholder pages (to be implemented)
 function ProfilePage() {

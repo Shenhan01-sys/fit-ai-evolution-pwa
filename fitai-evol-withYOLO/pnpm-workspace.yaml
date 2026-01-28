@@ -1,0 +1,10 @@
+ignoredBuiltDependencies:
+  - '@reown/appkit'
+  - better-sqlite3
+  - bufferutil
+  - core-js
+  - es5-ext
+  - esbuild
+  - keccak
+  - protobufjs
+  - utf-8-validate

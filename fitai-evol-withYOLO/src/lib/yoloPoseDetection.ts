@@ -1,4 +1,5 @@
-import * as ort from 'onnxruntime-web'
+// Use default import to avoid Rollup/Vite ESM parsing issues with lazy __esm pattern
+import ort from 'onnxruntime-web'
 
 interface Keypoint {
     x: number
@@ -16,7 +17,8 @@ interface PoseResult {
  * Uses ONNX Runtime Web with WebGPU/WebGL/WASM backends
  */
 class YOLOPoseDetector {
-    private session: ort.InferenceSession | null = null
+    // Use 'any' for session type to avoid complex onnxruntime-web type issues
+    private session: any = null
     private modelLoaded = false
     private inputSize = 640
 
@@ -38,7 +40,8 @@ class YOLOPoseDetector {
             ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.0/dist/'
 
             // Try execution providers in order of preference
-            const providers: ort.InferenceSession.ExecutionProviderConfig[] = []
+            // Use 'any' to avoid complex nested type issues with ort.InferenceSession.ExecutionProviderConfig
+            const providers: Array<{ name: string }> = []
 
             // Check WebGPU support (TypeScript safe check)
             if ('gpu' in navigator && navigator.gpu) {
@@ -54,7 +57,7 @@ class YOLOPoseDetector {
             this.session = await ort.InferenceSession.create(
                 '/models/yolo11n-pose.onnx',
                 {
-                    executionProviders: providers,
+                    executionProviders: providers as any,
                     graphOptimizationLevel: 'all'
                 }
             )
@@ -163,7 +166,7 @@ class YOLOPoseDetector {
      * YOLO11 output format: [1, 56, 8400]
      * 56 = 4 (bbox) + 1 (obj conf) + 51 (17 keypoints * 3: x, y, conf)
      */
-    private postprocessOutput(output: ort.InferenceSession.OnnxValueMapType): PoseResult {
+    private postprocessOutput(output: Record<string, InstanceType<typeof ort.Tensor>>): PoseResult {
         const outputTensor = output.output0
         const data = outputTensor.data as Float32Array
 
